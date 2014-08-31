@@ -17,8 +17,8 @@ $(function() {
             for(var x = 0; x < width; x++) {
                 var state = chunk.board.states[y][x];
                 var mine = chunk.board.mines[y][x];
-                var cellContents = '';
-                html += '<div data-cellx="' + x + '" data-celly="' + y + '" class="' + (mine ? ' hasmine ' : '') + 'cell" data-state="' + state + '">' + cellContents + '</div>';
+
+                html += '<div data-cellx="' + x + '" data-celly="' + y + '" class="' + (mine ? ' hasmine ' : '') + 'cell" data-state="' + state + '">' + '</div>';
 
             }
             html += '</div>';
@@ -82,7 +82,6 @@ $(function() {
                 setState($cell, newState);
             }
 
-            saveChunkToServer(chunkX, chunkY);
         });
 
         window.oncontextmenu = function(event) {
@@ -102,6 +101,7 @@ $(function() {
 
     function fetchChunk(x, y, callback) {
         $.post('/fetch', {x:x, y:y}, function(chunk) {
+            saveChunk(chunk);
             callback(chunk);
         });
     }
@@ -226,5 +226,13 @@ $(function() {
             });
         }
     }
+
+    setInterval(function() {
+        for(var x = 0; x < 5; x++) {
+            for(var y = 0; y < 5; y++) {
+                saveChunkToServer(x, y);
+            }
+        }
+    }, 2000);
 
 });
