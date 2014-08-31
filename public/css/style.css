@@ -2,3 +2,34 @@ body {
     margin: 0;
     padding: 0;
 }
+
+#minesweeper .cell {
+    background-color: grey;
+    border: 1px solid grey;
+    width: 32px;
+    height: 32px;
+    box-sizing: border-box;
+
+    float: left;
+}
+
+#minesweeper .row {
+    clear: left;
+}
+
+#minesweeper .chunk-row {
+}
+
+#minesweeper .chunk {
+    display: inline-block;
+    vertical-align: text-bottom;
+}
+
+#minesweeper .cell[data-state="flag"] {
+    border: 1px solid red;
+}
+
+#minesweeper .cell[data-state="revealed"] {
+    background-color: white;
+    border: 1px solid blue;
+}
