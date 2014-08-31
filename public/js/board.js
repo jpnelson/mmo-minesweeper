@@ -18,7 +18,8 @@ $(function() {
                 var state = chunk.board.states[y][x];
                 var mine = chunk.board.mines[y][x];
 
-                html += '<div data-cellx="' + x + '" data-celly="' + y + '" class="' + (mine ? ' hasmine ' : '') + 'cell" data-state="' + state + '">' + '</div>';
+
+                html += '<div title="' + x + ',' + y + '" data-cellx="' + x + '" data-celly="' + y + '" class="' + (mine ? ' hasmine ' : '') + 'cell" data-state="' + state + '">' + '</div>';
 
             }
             html += '</div>';
@@ -27,6 +28,23 @@ $(function() {
 
         var $chunk = $(html);
         return $chunk;
+    }
+
+    function updateChunk(chunk) {
+        var $chunk = getChunk($chunk);
+        var height = chunk.board.states.length;
+        var width = chunk.board.states[0].length;
+
+        for(var y = 0; y < height; y++) {
+            for(var x = 0; x < width; x++) {
+                var $cell = getCell(x, y, chunk.x, chunk.y);
+                var newState = chunk.board.states[y][x];
+                if (newState === 'revealed') {
+                    updateMineStatus($cell, x, y, chunk.x, chunk.y);
+                }
+                setState($cell, chunk.board.states[y][x]);
+            }
+        }
     }
 
     function saveChunk(chunk) {
@@ -94,9 +112,7 @@ $(function() {
     }
 
     function saveChunkToServer(chunkX, chunkY) {
-        $.post('/save', {chunk: chunks[chunkY][chunkX]}, function() {
-            console.log('Saved to server');
-        });
+        $.post('/save', {chunk: chunks[chunkY][chunkX]});
     }
 
     function fetchChunk(x, y, callback) {
@@ -110,13 +126,11 @@ $(function() {
         var cellX = parseInt($cell.attr('data-cellx'));
         var cellY = parseInt($cell.attr('data-celly'));
 
+        setRevealed($cell, cellX, cellY, chunkX, chunkY);
+
         var mineCount = getMineCount(cellX, cellY, chunkX, chunkY);
-        var neighbours = getNeighbouringCells(cellX, cellY, chunkX, chunkY);
-
-        setRevealed($cell, chunkX, chunkY)
-        $cell.html(mineCount > 0 ? mineCount : '')
-
         if (mineCount === 0) {
+            var neighbours = getNeighbouringCells(cellX, cellY, chunkX, chunkY);
             neighbours.forEach(function(cell) {
                 var $neighbourCell = getCell(cell.cellX, cell.cellY, cell.chunkX, cell.chunkY);
                 if (getState($neighbourCell) === 'hidden') {
@@ -124,6 +138,15 @@ $(function() {
                 }
             });
         }
+    }
+
+
+    function updateMineCount($cell, cellX, cellY, chunkX, chunkY) {
+        var mineClasses = ['has-one-mine', 'has-two-mines', 'has-three-mines', 'has-four-mines', 'has-five-mines', 'has-six-mines', 'has-seven-mines', 'has-eight-mines']
+        var mineCount = getMineCount(cellX, cellY, chunkX, chunkY);
+        var mineClass = mineClasses[mineCount - 1];
+        $cell.html(mineCount > 0 ? mineCount : '');
+        $cell.addClass(mineClass);
     }
 
     function getNeighbouringCells(cellX, cellY, chunkX, chunkY) {
@@ -162,6 +185,11 @@ $(function() {
                 if (thisChunkX < 0 || thisChunkY < 0) {
                     continue;
                 }
+
+                var outOfBounds = !chunks[thisChunkY] || !chunks[thisChunkY][thisChunkX];
+                if (outOfBounds) {
+                    continue;
+                }
                 var cell = {
                     cellX: thisCellX,
                     cellY: thisCellY,
@@ -192,9 +220,20 @@ $(function() {
 
     }
 
-    function setRevealed($cell) {
+    function setRevealed($cell, cellX, cellY, chunkX, chunkY) {
         setState($cell, 'revealed');
+        updateMineStatus($cell, cellX, cellY, chunkX, chunkY);
     }
+
+    function updateMineStatus($cell, cellX, cellY, chunkX, chunkY) {
+        var hasMine = chunks[chunkY][chunkX].board.mines[cellY][cellX];
+        if (hasMine) {
+            $cell.addClass('has-mine');
+        } else {
+            updateMineCount($cell, cellX, cellY, chunkX, chunkY);
+        }
+    }
+
 
     function getState($cell) {
         return $cell.attr('data-state');
@@ -217,8 +256,8 @@ $(function() {
 
     }
 
-    for(var x = 0; x < 5; x++) {
-        for(var y = 0; y < 5; y++) {
+    for(var x = 0; x < 10; x++) {
+        for(var y = 0; y < 10; y++) {
             fetchChunk(x, y, function(chunk) {
                 var $chunk = renderChunk(chunk);
                 addChunkToGrid($chunk);
@@ -228,11 +267,51 @@ $(function() {
     }
 
     setInterval(function() {
-        for(var x = 0; x < 5; x++) {
-            for(var y = 0; y < 5; y++) {
+        for(var x = 0; x < 10; x++) {
+            for(var y = 0; y < 10; y++) {
                 saveChunkToServer(x, y);
             }
         }
     }, 2000);
+
+    setInterval(function() {
+        for(var x = 0; x < 10; x++) {
+            for(var y = 0; y < 10; y++) {
+                fetchChunk(x, y, function(chunk) {
+                    updateChunk(chunk);
+                });
+            }
+        }
+    }, 2000);
+
+    function debounce(fn, delay) {
+        var timer = null;
+        return function () {
+            var context = this, args = arguments;
+            clearTimeout(timer);
+            timer = setTimeout(function () {
+                fn.apply(context, args);
+            }, delay);
+        };
+    }
+
+    function isScrolledIntoView(elem) {
+        var docViewTop = $(window).scrollTop();
+        var docViewBottom = docViewTop + $(window).height();
+
+        var elemTop = $(elem).offset().top;
+        var elemBottom = elemTop + $(elem).height();
+
+        return ((elemTop < docViewBottom) && (elemBottom > docViewTop));
+    }
+
+    $(window).scroll(debounce(function() {
+        $('#minesweeper').find('.chunk').each(function() {
+            var $chunk = $(this);
+            if (!isScrolledIntoView($chunk)) {
+                $chunk.remove();
+            }
+        })
+    }, 500));
 
 });

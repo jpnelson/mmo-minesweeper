@@ -13,7 +13,6 @@ function merge(chunkClient, chunkServer) {
     var width = chunkServer.board.states[0].length;
     var height = chunkServer.board.states.length;
     var mergeResult = chunkServer;
-console.log(mergeResult);
 
     for(var y = 0; y < height; y++) {
         for(var x = 0; x < width; x++) {
@@ -26,7 +25,6 @@ console.log(mergeResult);
             }
         }
     }
-console.log(mergeResult);
 
     return mergeResult;
 }
