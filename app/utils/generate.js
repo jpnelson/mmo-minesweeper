@@ -8,12 +8,12 @@ function makeBoard(width, height) {
     var states = [];
     var mines = [];
 
-    for (var x = 0; x < width; x++) {
+    for (var y = 0; y < height; y++) {
         var stateRow = [];
         var mineRow = [];
-        for (var y = 0; y < height; y++) {
+        for (var x = 0; x < width; x++) {
             stateRow.push(STATE.HIDDEN);
-            mineRow.push(Math.random(1) > 0.5);
+            mineRow.push(Math.random(1) > 0.8);
         }
         states.push(stateRow);
         mines.push(mineRow);
