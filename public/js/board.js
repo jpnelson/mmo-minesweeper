@@ -18,7 +18,6 @@ $(function() {
                 var state = chunk.board.states[y][x];
                 var mine = chunk.board.mines[y][x];
 
-
                 html += '<div title="' + x + ',' + y + '" data-cellx="' + x + '" data-celly="' + y + '" class="' + (mine ? ' hasmine ' : '') + 'cell" data-state="' + state + '">' + '</div>';
 
             }
@@ -65,6 +64,7 @@ $(function() {
             left: x * $chunk.outerWidth(),
             top: y * $chunk.outerHeight()
         });
+
     }
 
     function getChunk(x, y) {
@@ -93,6 +93,9 @@ $(function() {
             var chunkX = parseInt($chunk.attr('data-x'));
             var chunkY = parseInt($chunk.attr('data-y'));
 
+            var cellX = parseInt($cell.attr('data-cellx'));
+            var cellY = parseInt($cell.attr('data-celly'));
+
             if (left) {
                 revealCell($cell, chunkX, chunkY);
             } else if (right) {
@@ -100,6 +103,7 @@ $(function() {
                 setState($cell, newState);
             }
 
+            updateCellLastModified(chunkX, chunkY, cellX, cellY);
         });
 
         window.oncontextmenu = function(event) {
@@ -107,19 +111,16 @@ $(function() {
             event.stopPropagation();
             return false;
         };
-
-
     }
 
-    function saveChunkToServer(chunkX, chunkY) {
-        $.post('/save', {chunk: chunks[chunkY][chunkX]});
-    }
+    function updateCellLastModified(chunkX, chunkY, cellX, cellY) {
+        //If we haven't loaded anything from the server yet, then we won't have the modified times
+        chunks[chunkY][chunkX].board.modified = chunks[chunkY][chunkX].board.modified || {};
+        if (!chunks[chunkY][chunkX].board.modified[cellY]) {
+            chunks[chunkY][chunkX].board.modified[cellY] = {};
+        }
 
-    function fetchChunk(x, y, callback) {
-        $.post('/fetch', {x:x, y:y}, function(chunk) {
-            saveChunk(chunk);
-            callback(chunk);
-        });
+        chunks[chunkY][chunkX].board.modified[cellY][cellX] = Date.now();
     }
 
     function revealCell($cell, chunkX, chunkY) {
@@ -234,7 +235,6 @@ $(function() {
         }
     }
 
-
     function getState($cell) {
         return $cell.attr('data-state');
     }
@@ -256,6 +256,32 @@ $(function() {
 
     }
 
+    function getChunkLastModifiedTimestamp(chunkX, chunkY) {
+        var maxTimeStamp = 0;
+        var modificationTimes = chunks[chunkY][chunkX].board.modified;
+
+        modificationTimes.forEach(function (row) {
+            modificationTimes.forEach(function (cell) {
+                maxTimeStamp = Math.max(cell, maxTimeStamp);
+            });
+        });
+
+        return maxTimeStamp;
+    }
+
+    function saveChunkToServer(chunkX, chunkY, callback) {
+        $.post('/save', {chunk: chunks[chunkY][chunkX]}, function() {
+            callback()
+        });
+    }
+
+    function fetchChunk(x, y, callback) {
+        $.post('/fetch', {x:x, y:y}, function(chunk) {
+            saveChunk(chunk);
+            callback(chunk);
+        });
+    }
+
     for(var x = 0; x < 10; x++) {
         for(var y = 0; y < 10; y++) {
             fetchChunk(x, y, function(chunk) {
@@ -266,23 +292,27 @@ $(function() {
         }
     }
 
-    setInterval(function() {
-        for(var x = 0; x < 10; x++) {
-            for(var y = 0; y < 10; y++) {
-                saveChunkToServer(x, y);
-            }
-        }
-    }, 2000);
+    var lastUpdatedTime = Date.now();
 
     setInterval(function() {
-        for(var x = 0; x < 10; x++) {
-            for(var y = 0; y < 10; y++) {
-                fetchChunk(x, y, function(chunk) {
-                    updateChunk(chunk);
-                });
-            }
-        }
-    }, 2000);
+        [0,1,2,3,4,5,6,7,8,9].forEach(function(chunkX) {
+            [0,1,2,3,4,5,6,7,8,9].forEach(function(chunkY) {
+                if(lastUpdatedTime > getChunkLastModifiedTimestamp(chunkX, chunkY)) {
+                    fetchChunk(chunkX, chunkY, function(chunk) {
+                        updateChunk(chunk);
+                    });
+
+                } else {
+                    saveChunkToServer(chunkX, chunkY, function() {
+                        fetchChunk(chunkX, chunkY, function(chunk) {
+                            updateChunk(chunk);
+                        });
+                    });
+                }
+            });
+        });
+        lastUpdatedTime = Date.now();
+    }, 5000);
 
     function debounce(fn, delay) {
         var timer = null;

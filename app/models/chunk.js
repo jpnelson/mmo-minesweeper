@@ -6,7 +6,8 @@ var ChunkSchema = new Schema({
     y: Number,
     board: {
       states: Array,
-      mines: Array
+      mines: Array,
+      modified: Array
     }
 });
 

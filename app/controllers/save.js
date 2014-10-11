@@ -21,7 +21,15 @@ function merge(chunkClient, chunkServer) {
             if (serverState === 'revealed') {
                 continue;
             } else {
-                mergeResult.board.states[y][x] = chunkClient.board.states[y][x];
+                var shouldTakeClient = (chunkClient.board.modified[y][x] > chunkServer.board.modified[y][x]);
+                if (shouldTakeClient) {
+                    console.log('TAKING CLIENT');
+                    mergeResult.board.states[y][x] = chunkClient.board.states[y][x];
+                    mergeResult.board.modified[y][x] = chunkClient.board.modified[y][x];
+                } else {
+                    console.log('TAKING SERVER');
+
+                }
             }
         }
     }
@@ -42,13 +50,7 @@ router.post('/', function (req, res, next) {
         serverChunk = serverChunk.toObject();
         delete serverChunk._id;
 
-        console.log('Saving...');
-        console.log(serverChunk.board.states[0][0]);
-
         Chunk.update(query, serverChunk, function(err, numberAffected, rawResponse) {
-            console.log(err);
-            console.log(numberAffected);
-            console.log(rawResponse);
             res.send(200);
         });
     });
