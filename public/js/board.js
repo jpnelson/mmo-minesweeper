@@ -85,9 +85,11 @@ $(function() {
     }
 
     function bindInteraction($chunk) {
+        var left;
+        var right;
         $chunk.on('mousedown', function(e) {
-            var left = event.which === 1;
-            var right = event.which === 3;
+            left = left || event.which === 1;
+            right = right || event.which === 3;
             var $cell = $(e.target);
 
             var chunkX = parseInt($chunk.attr('data-x'));
@@ -96,14 +98,21 @@ $(function() {
             var cellX = parseInt($cell.attr('data-cellx'));
             var cellY = parseInt($cell.attr('data-celly'));
 
-            if (left) {
+            if (left && right) {
+                revealNeighbouringCells(cellX, cellY, chunkX, chunkY);
+            } else if (left) {
                 revealCell($cell, chunkX, chunkY);
             } else if (right) {
                 var newState = getState($cell) === 'flag' ? 'hidden' : 'flag';
                 setState($cell, newState);
+                updateCellLastModified(cellX, cellY, chunkX, chunkY);
             }
 
-            updateCellLastModified(chunkX, chunkY, cellX, cellY);
+        });
+
+        $chunk.on('mouseup', function(e) {
+            left = event.which === 1 ? false : left;
+            right = event.which === 3 ? false : right;
         });
 
         window.oncontextmenu = function(event) {
@@ -123,6 +132,10 @@ $(function() {
         chunks[chunkY][chunkX].board.modified[cellY][cellX] = Date.now();
     }
 
+    function isCellFlagged(cellX, cellY, chunkX, chunkY) {
+        return chunks[chunkY][chunkX].board.state === 'flag';
+    }
+
     function revealCell($cell, chunkX, chunkY) {
         var cellX = parseInt($cell.attr('data-cellx'));
         var cellY = parseInt($cell.attr('data-celly'));
@@ -139,6 +152,23 @@ $(function() {
                 }
             });
         }
+
+        updateCellLastModified(cellX, cellY, chunkX, chunkY);
+    }
+
+    function revealNeighbouringCells(cellX, cellY, chunkX, chunkY) {
+        var neighbours = getNeighbouringCells(cellX, cellY, chunkX, chunkY);
+        neighbours.forEach(function(thisCell) {
+            var $thisCell = getCell(thisCell.cellX, thisCell.cellY, thisCell.chunkX, thisCell.chunkY);
+            revealCell($thisCell, thisCell.chunkX, thisCell.chunkY);
+        });
+    }
+
+    function updateNeighbouringCellsLastModified(cellX, cellY, chunkX, chunkY) {
+        var neighbours = getNeighbouringCells(cellX, cellY, chunkX, chunkY);
+        neighbours.forEach(function(thisCell) {
+            updateCellLastModified(thisCell.cellX, thisCell.cellY, thisCell.chunkX, thisCell.chunkY);
+        });
     }
 
 
@@ -222,6 +252,10 @@ $(function() {
     }
 
     function setRevealed($cell, cellX, cellY, chunkX, chunkY) {
+        if (getState($cell) === 'flag') {
+            return;
+        }
+
         setState($cell, 'revealed');
         updateMineStatus($cell, cellX, cellY, chunkX, chunkY);
     }
@@ -312,7 +346,7 @@ $(function() {
             });
         });
         lastUpdatedTime = Date.now();
-    }, 5000);
+    }, 10000);
 
     function debounce(fn, delay) {
         var timer = null;
