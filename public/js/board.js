@@ -122,13 +122,12 @@ $(function() {
         };
     }
 
-    function updateCellLastModified(chunkX, chunkY, cellX, cellY) {
+    function updateCellLastModified(cellX, cellY, chunkX, chunkY) {
         //If we haven't loaded anything from the server yet, then we won't have the modified times
         chunks[chunkY][chunkX].board.modified = chunks[chunkY][chunkX].board.modified || {};
         if (!chunks[chunkY][chunkX].board.modified[cellY]) {
             chunks[chunkY][chunkX].board.modified[cellY] = {};
         }
-
         chunks[chunkY][chunkX].board.modified[cellY][cellX] = Date.now();
     }
 
