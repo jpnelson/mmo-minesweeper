@@ -21,7 +21,6 @@ router.post('/', function (req, res, next) {
             board = new Board(newBoard);
             board.save();
         }
-        console.log(board.mines);
         res.json(board);
 
 

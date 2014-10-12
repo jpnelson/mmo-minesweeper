@@ -44,9 +44,7 @@ $(function() {
     function bindInteraction() {
         var left;
         var right;
-        $minesweeper.on('mousedown', function(e) {
-            left = left || event.which === 1;
-            right = right || event.which === 3;
+        $minesweeper.on('mouseup', function(e) {
             var $cell = $(e.target);
 
             var x = parseInt($cell.attr('data-x'));
@@ -62,11 +60,13 @@ $(function() {
                 updateCellLastModified(x, y);
             }
 
-        });
-
-        $minesweeper.on('mouseup', function(e) {
             left = event.which === 1 ? false : left;
             right = event.which === 3 ? false : right;
+        });
+
+        $minesweeper.on('mousedown', function(e) {
+            left = left || event.which === 1;
+            right = right || event.which === 3;
         });
 
         window.oncontextmenu = function(event) {
@@ -83,7 +83,7 @@ $(function() {
     function setState(x, y, state) {
         var $cell = getCellElement(x, y);
 
-        if (getState(x, y) === 'flag' || state === 'revealed') {
+        if (getState(x, y) === 'flag' && state !== 'hidden') {
             return;
         }
 
@@ -109,7 +109,7 @@ $(function() {
                 }
             });
         }
-
+        revealMineCount(x, y);
         updateCellLastModified(x, y);
     }
 
@@ -202,7 +202,7 @@ $(function() {
     function init() {
         fetch(function (serverBoard) {
             board = serverBoard;
-            console.table(serverBoard.mines);
+            console.log(board.mines);
             renderBoard();
         });
 

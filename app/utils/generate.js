@@ -24,8 +24,6 @@ function makeBoard(width, height) {
         modified.push(modifiedRow);
     }
 
-    console.log(mines);
-
     return {
         states: states,
         mines: mines,

@@ -7,15 +7,6 @@ body {
     clear: left;
 }
 
-.chunk-row {
-}
-
-.chunk {
-    position: relative;
-    display: inline-block;
-    vertical-align: text-bottom;
-}
-
 .cell {
     font-family: 'Squada One', cursive;
     font-size: 28px;
