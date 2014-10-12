@@ -328,24 +328,28 @@ $(function() {
     var lastUpdatedTime = Date.now();
 
     setInterval(function() {
-        [0,1,2,3,4,5,6,7,8,9].forEach(function(chunkX) {
-            [0,1,2,3,4,5,6,7,8,9].forEach(function(chunkY) {
-                if(lastUpdatedTime > getChunkLastModifiedTimestamp(chunkX, chunkY)) {
+        $('#minesweeper').find('.chunk').each(function() {
+            var $chunk = $(this);
+            var chunkY = parseInt($chunk.attr('data-y'));
+            var chunkX = parseInt($chunk.attr('data-x'));
+
+            if(lastUpdatedTime > getChunkLastModifiedTimestamp(chunkX, chunkY)) {
+                fetchChunk(chunkX, chunkY, function(chunk) {
+                    updateChunk(chunk);
+                });
+
+            } else {
+                saveChunkToServer(chunkX, chunkY, function() {
                     fetchChunk(chunkX, chunkY, function(chunk) {
                         updateChunk(chunk);
                     });
-
-                } else {
-                    saveChunkToServer(chunkX, chunkY, function() {
-                        fetchChunk(chunkX, chunkY, function(chunk) {
-                            updateChunk(chunk);
-                        });
-                    });
-                }
-            });
+                });
+            }
         });
         lastUpdatedTime = Date.now();
     }, 10000);
+
+    
 
     function debounce(fn, delay) {
         var timer = null;
@@ -368,11 +372,35 @@ $(function() {
         return ((elemTop < docViewBottom) && (elemBottom > docViewTop));
     }
 
+    function expandAroundChunk(chunkX, chunkY) {
+        if (!chunks[chunkY-1] || !chunks[chunkY-1][chunkX]) {
+            fetchChunk(chunkX, chunkY-1, function(chunk) {
+                var $chunk = renderChunk(chunk);
+                addChunkToGrid($chunk);
+                bindInteraction($chunk);
+            });
+        }
+
+        if (!chunks[chunkY+1] || !chunks[chunkY+1][chunkX]) {
+            fetchChunk(chunkX, chunkY+1, function(chunk) {
+                var $chunk = renderChunk(chunk);
+                addChunkToGrid($chunk);
+                bindInteraction($chunk);
+            });
+        }
+    }
+
     $(window).scroll(debounce(function() {
         $('#minesweeper').find('.chunk').each(function() {
             var $chunk = $(this);
+            var chunkY = parseInt($chunk.attr('data-y'));
+            var chunkX = parseInt($chunk.attr('data-x'));
+
             if (!isScrolledIntoView($chunk)) {
                 $chunk.remove();
+                chunks[chunkY][chunkX] = undefined;
+            } else {
+                expandAroundChunk(chunkX, chunkY);
             }
         })
     }, 500));

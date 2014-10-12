@@ -21,15 +21,10 @@ function merge(chunkClient, chunkServer) {
             if (serverState === 'revealed') {
                 continue;
             } else {
-                console.log('Client: ' + chunkClient.board.modified[y][x]);
-                console.log('Server: ' + chunkServer.board.modified[y][x]);
                 var shouldTakeClient = (chunkClient.board.modified[y][x] > chunkServer.board.modified[y][x]);
                 if (shouldTakeClient) {
-                    console.log('TAKING CLIENT');
                     mergeResult.board.states[y][x] = chunkClient.board.states[y][x];
                     mergeResult.board.modified[y][x] = chunkClient.board.modified[y][x];
-                } else {
-                    console.log('TAKING SERVER');
                 }
             }
         }
