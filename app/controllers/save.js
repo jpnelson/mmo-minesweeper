@@ -1,7 +1,7 @@
 var generate = require('../utils/generate');
 var express = require('express');
 var mongoose = require('mongoose');
-var Chunk = mongoose.model('Chunk');
+var Board = mongoose.model('Board');
 var router = express.Router();
 
 
@@ -9,19 +9,20 @@ module.exports = function (app) {
   app.use('/save', router);
 };
 
-function merge(chunkClient, chunkServer) {
-    var width = chunkServer.board.states[0].length;
-    var height = chunkServer.board.states.length;
-    var mergeResult = chunkServer;
+function merge(clientBoard, serverBoard) {
+    var width = serverBoard.states[0].length;
+    var height = serverBoard.states.length;
+    var mergeResult = serverBoard;
 
     for(var y = 0; y < height; y++) {
         for(var x = 0; x < width; x++) {
-            var serverState = chunkServer.board.states[y][x];
+            var serverState = serverBoard.states[y][x];
+            var clientState = clientBoard.states[y][x];
 
             if (serverState === 'revealed') {
                 continue;
             } else {
-                var shouldTakeClient = (chunkClient.board.modified[y][x] > chunkServer.board.modified[y][x]);
+                var shouldTakeClient = (clientState === 'revealed') || (chunkClient.board.modified[y][x] > chunkServer.board.modified[y][x]);
                 if (shouldTakeClient) {
                     mergeResult.board.states[y][x] = chunkClient.board.states[y][x];
                     mergeResult.board.modified[y][x] = chunkClient.board.modified[y][x];
@@ -34,20 +35,19 @@ function merge(chunkClient, chunkServer) {
 }
 
 router.post('/', function (req, res, next) {
-    var clientChunk = req.param('chunk');
-    var query = {x: clientChunk.x, y: clientChunk.y};
-    Chunk.find(query).exec(function(error, results) {
-        var serverChunk = results.length && results[0];
-        if (!serverChunk) {
+    var clientBoard = req.param('board');
+    Board.find().exec(function(error, results) {
+        var serverBoard = results.length && results[0];
+        if (!serverBoard) {
             res.send(400);
         }
-        serverChunk = merge(clientChunk, serverChunk);
+        serverBoard = merge(clientBoard, serverBoard);
         //Turn from mongoose object into regular object
-        serverChunk = serverChunk.toObject();
-        delete serverChunk._id;
+        serverBoard = serverBoard.toObject();
+        delete serverBoard._id;
 
-        Chunk.update(query, serverChunk, function(err, numberAffected, rawResponse) {
-            res.send(200);
+        Board.update({}, serverBoard, function(err, numberAffected, rawResponse) {
+            res.json(serverBoard);
         });
     });
 

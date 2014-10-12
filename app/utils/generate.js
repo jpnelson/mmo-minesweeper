@@ -16,13 +16,15 @@ function makeBoard(width, height) {
 
         for (var x = 0; x < width; x++) {
             stateRow.push(STATE.HIDDEN);
-            mineRow.push(Math.random(1) > 0.8);
+            mineRow.push(Math.random(1) > 0.7);
             modifiedRow.push(Date.now());
         }
         states.push(stateRow);
         mines.push(mineRow);
         modified.push(modifiedRow);
     }
+
+    console.log(mines);
 
     return {
         states: states,
