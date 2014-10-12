@@ -52,12 +52,18 @@ $(function() {
 
             if (left && right) {
                 revealNeighbouringCells(x, y);
+                left = false;
+                right = false;
             } else if (left) {
                 revealCell(x, y);
+                left = false;
+                right = false;
             } else if (right) {
                 var newState = getState($cell) === 'flag' ? 'hidden' : 'flag';
                 setState(x, y, newState);
                 updateCellLastModified(x, y);
+                left = false;
+                right = false;
             }
 
             left = event.which === 1 ? false : left;
@@ -67,6 +73,9 @@ $(function() {
         $minesweeper.on('mousedown', function(e) {
             left = left || event.which === 1;
             right = right || event.which === 3;
+
+            console.log('LEFT: ' + left);
+            console.log('RIGHT: ' + right);
         });
 
         window.oncontextmenu = function(event) {
@@ -114,6 +123,10 @@ $(function() {
     }
 
     function revealMineCount(x, y) {
+        if (cellHasMine(x, y)) {
+            getCellElement(x, y).addClass('has-mine');
+            return;
+        }
         var mineClasses = ['has-one-mine', 'has-two-mines', 'has-three-mines', 'has-four-mines', 'has-five-mines', 'has-six-mines', 'has-seven-mines', 'has-eight-mines']
         var mineCount = getMineCount(x, y);
         var mineClass = mineClasses[mineCount - 1];
