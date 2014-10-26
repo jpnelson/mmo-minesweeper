@@ -16,7 +16,7 @@ router.post('/', function (req, res, next) {
         board = results.length && results[0];
 
         if (!board) {
-            var newBoard = generate(30,16);
+            var newBoard = generate(50, 30);
 
             board = new Board(newBoard);
             board.save();

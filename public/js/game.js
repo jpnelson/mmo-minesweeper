@@ -2,8 +2,8 @@ $(function() {
     var $minesweeper = $('#minesweeper');
     var board = {};
 
-    var WIDTH = 30;
-    var HEIGHT = 16;
+    var WIDTH = 50;
+    var HEIGHT = 30;
 
     function renderBoard() {
         var html = '<div class="board">';
@@ -44,7 +44,9 @@ $(function() {
     function bindInteraction() {
         var left;
         var right;
-        $minesweeper.on('mouseup', function(e) {
+        $minesweeper.on('mousedown', function(e) {
+            left = left || event.which === 1;
+            right = right || event.which === 3;
             var $cell = $(e.target);
 
             var x = parseInt($cell.attr('data-x'));
@@ -52,30 +54,24 @@ $(function() {
 
             if (left && right) {
                 revealNeighbouringCells(x, y);
-                left = false;
-                right = false;
             } else if (left) {
                 revealCell(x, y);
-                left = false;
-                right = false;
             } else if (right) {
-                var newState = getState($cell) === 'flag' ? 'hidden' : 'flag';
+                var oldState = getState(x, y);
+                if (oldState === 'revealed') {
+                    return;
+                }
+
+                var newState = oldState === 'flag' ? 'hidden' : 'flag';
                 setState(x, y, newState);
                 updateCellLastModified(x, y);
-                left = false;
-                right = false;
             }
 
-            left = event.which === 1 ? false : left;
-            right = event.which === 3 ? false : right;
         });
 
-        $minesweeper.on('mousedown', function(e) {
-            left = left || event.which === 1;
-            right = right || event.which === 3;
-
-            console.log('LEFT: ' + left);
-            console.log('RIGHT: ' + right);
+        $minesweeper.on('mouseup', function(e) {
+            left = event.which === 1 ? false : left;
+            right = event.which === 3 ? false : right;
         });
 
         window.oncontextmenu = function(event) {
@@ -106,6 +102,10 @@ $(function() {
     }
 
     function revealCell(x, y) {
+        if (getState(x, y) === 'flag') {
+            return;
+        }
+
         setState(x, y, 'revealed');
         revealMineCount(x, y);
 
@@ -120,6 +120,13 @@ $(function() {
         }
         revealMineCount(x, y);
         updateCellLastModified(x, y);
+    }
+
+    function revealNeighbouringCells(x, y) {
+        var neighbours = getNeighbouringCells(x, y);
+        neighbours.forEach(function(cell) {
+            revealCell(cell.x, cell.y);
+        });
     }
 
     function revealMineCount(x, y) {
@@ -182,13 +189,6 @@ $(function() {
         return board.mines[y][x] === true;
     }
 
-    function revealNeighbouringCells(x, y) {
-        var neighbours = getNeighbouringCells(x, y);
-        neighbours.forEach(function(cell) {
-            revealCell(cell.x, cell.y);
-        });
-    }
-
     function save(callback) {
         $.post('/save', {board: board}, function(board) {
             callback(board);
@@ -220,6 +220,12 @@ $(function() {
         });
 
         bindInteraction();
+
+        setInterval(function () {
+            save(function (board) {
+                
+            });
+        }, 2000);
 
     }
 

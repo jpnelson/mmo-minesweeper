@@ -16,7 +16,7 @@ function makeBoard(width, height) {
 
         for (var x = 0; x < width; x++) {
             stateRow.push(STATE.HIDDEN);
-            mineRow.push(Math.random(1) > 0.7);
+            mineRow.push(Math.random(1) > 0.9);
             modifiedRow.push(Date.now());
         }
         states.push(stateRow);
